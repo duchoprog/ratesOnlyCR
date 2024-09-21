@@ -56,7 +56,8 @@ app.get("/cr", function (request, response) {
   const bankUrl =
     "https://gee.bccr.fi.cr/Indicadores/Suscripciones/WS/wsindicadoreseconomicos.asmx";
 
-  exchangeCRCtoday();
+  let bankResponse = exchangeCRCtoday();
+  res.json({ todaysRate: bankResponse });
   async function exchangeCRCtoday() {
     try {
       const response = await axios.post(bankUrl, soapRequest, { headers });
