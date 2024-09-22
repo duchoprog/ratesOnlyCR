@@ -7,18 +7,13 @@ const app = express();
 const axios = require("axios");
 const xml2js = require("xml2js");
 const parser = new xml2js.Parser();
+const cors = require("cors");
 
-// we've started you off with Express,
-// but feel free to use whatever libs or frameworks you'd like through `package.json`.
+app.use(cors());
 
-// http://expressjs.com/en/starter/static-files.html
 app.use(express.static("public"));
 
-// http://expressjs.com/en/starter/basic-routing.html
-app.get("/", function (request, response) {
-  response("culo");
-});
-app.get("/cr", function (request, response) {
+app.get("/cr", function (req, res) {
   // Create a new Date object
   const today = new Date();
 
@@ -57,7 +52,7 @@ app.get("/cr", function (request, response) {
     "https://gee.bccr.fi.cr/Indicadores/Suscripciones/WS/wsindicadoreseconomicos.asmx";
 
   let bankResponse = exchangeCRCtoday();
-  res.json({ todaysRate: bankResponse });
+
   async function exchangeCRCtoday() {
     try {
       const response = await axios.post(bankUrl, soapRequest, { headers });
@@ -94,6 +89,7 @@ app.get("/cr", function (request, response) {
         todaysRate = item.NUM_VALOR[0];
       });
       console.log(todaysRate);
+      res.json({ todaysRate: todaysRate });
 
       return todaysRate;
     } catch (err) {
