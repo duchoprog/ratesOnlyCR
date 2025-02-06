@@ -12,20 +12,19 @@ const cors = require("cors");
 app.use(cors());
 
 app.use(express.static("public"));
+// Create a new Date object
+const today = new Date();
+
+// Get the day, month, and year
+const day = String(today.getDate()).padStart(2, "0");
+const month = String(today.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+const year = today.getFullYear();
+
+// Format the date as dd/mm/yyyy
+const formattedDate = `${day}/${month}/${year}`;
+const odoodDate = `${year}-${month}-${day}`;
 
 app.get("/cr", function (req, res) {
-  // Create a new Date object
-  const today = new Date();
-
-  // Get the day, month, and year
-  const day = String(today.getDate()).padStart(2, "0");
-  const month = String(today.getMonth() + 1).padStart(2, "0"); // Months are 0-based
-  const year = today.getFullYear();
-
-  // Format the date as dd/mm/yyyy
-  const formattedDate = `${day}/${month}/${year}`;
-  const odoodDate = `${year}-${month}-${day}`;
-
   // SOAP request for exchange rates (compra or venta)
   const soapRequest = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
@@ -57,9 +56,9 @@ app.get("/cr", function (req, res) {
     try {
       const response = await axios.post(bankUrl, soapRequest, { headers });
 
-      let todaysRate = await parseXMLResponse(response.data);
+      let todaysRateCr = await parseXMLResponse(response.data);
 
-      return todaysRate;
+      return todaysRateCr;
     } catch (error) {
       console.error("Error fetching exchange rates:", error);
     }
@@ -92,6 +91,57 @@ app.get("/cr", function (req, res) {
       res.json({ todaysRate: todaysRate });
 
       return todaysRate;
+    } catch (err) {
+      console.error("Error parsing XML:", err);
+    }
+  }
+});
+
+app.get("/gua", function (req, res) {
+  // SOAP request for exchange rates
+  const soapRequest = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <TipoCambioDia xmlns="http://www.banguat.gob.gt/variables/ws/" />
+  </soap:Body>
+</soap:Envelope>`;
+
+  const headers = {
+    "Content-Type": "text/xml; charset=utf-8",
+    "Content-Length": soapRequest.length,
+    SOAPAction: "http://www.banguat.gob.gt/variables/ws/TipoCambioDia",
+  };
+
+  const bankUrl = "https://www.banguat.gob.gt/variables/ws/TipoCambio.asmx";
+
+  let bankResponse = exchangeGUAToday();
+
+  async function exchangeGUAToday() {
+    try {
+      const response = await axios.post(bankUrl, soapRequest, { headers });
+
+      let todaysRateGua = await parseXMLResponse(response.data);
+
+      return todaysRateGua;
+    } catch (error) {
+      console.error("Error fetching exchange rates:", error);
+    }
+  }
+
+  async function parseXMLResponse(xml) {
+    console.log(xml);
+    let todaysRate;
+    try {
+      // Use a regular expression to extract the value between <referencia> and </referencia>
+      const match = xml.match(/<referencia>([^<]+)<\/referencia>/);
+      if (match && match[1]) {
+        todaysRate = match[1];
+        console.log(todaysRate);
+        res.json({ todaysRate: todaysRate });
+        return todaysRate;
+      } else {
+        throw new Error("No referencia value found in the XML response");
+      }
     } catch (err) {
       console.error("Error parsing XML:", err);
     }
